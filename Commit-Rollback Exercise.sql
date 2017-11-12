@@ -30,14 +30,15 @@ INSERT INTO test values ('3', 'this is record 3');
 SELECT * FROM test; 
 -- do they look correct? 
 -- they should look like this ....
--- +-----------+----------------------------+
--- | key_field | text_field                 |
--- +-----------+----------------------------+
--- | 1         | this is record 1           |
--- | 2         | this is record 2           |
--- | 3         | this is record 3           |
--- +-----------+----------------------------+
--- 3 rows in set (0.00 sec)
+MariaDB [heatherrmoore]> SELECT * FROM test;
++-----------+------------------+
+| key_field | text_field       |
++-----------+------------------+
+| 1         | this is record 1 |
+| 2         | this is record 2 |
+| 3         | this is record 3 |
++-----------+------------------+
+3 rows in set (0.00 sec)
 
 -- now lets update one of the descriptions and do it in a transaction so we 
 -- have a choice of committing it or rolling it back.
@@ -51,14 +52,15 @@ COMMIT;
 SELECT * FROM test; 
 -- do they look correct? 
 -- they should look like this ....
--- +-----------+----------------------------+
--- | key_field | text_field                 |
--- +-----------+----------------------------+
--- | 1         | this is record 1           |
--- | 2         | this is record 2 - updated |
--- | 3         | this is record 3           |
--- +-----------+----------------------------+
--- 3 rows in set (0.00 sec)
+MariaDB [heatherrmoore]> SELECT * FROM test;
++-----------+----------------------------+
+| key_field | text_field                 |
++-----------+----------------------------+
+| 1         | this is record 1           |
+| 2         | this is record 2 - updated |
+| 3         | this is record 3           |
++-----------+----------------------------+
+3 rows in set (0.00 sec)
 
 
 -- what if we issue another update and this time issue a rollback ..
@@ -70,14 +72,15 @@ ROLLBACK;
 SELECT * from test; 
 -- do they look correct? 
 -- they should look like this ....
--- +-----------+----------------------------+
--- | key_field | text_field                 |
--- +-----------+----------------------------+
--- | 1         | this is record 1           |
--- | 2         | this is record 2 - updated |
--- | 3         | this is record 3           |
--- +-----------+----------------------------+
--- 3 rows in set (0.00 sec)
+MariaDB [heatherrmoore]> SELECT * from test;
++-----------+----------------------------+
+| key_field | text_field                 |
++-----------+----------------------------+
+| 1         | this is record 1           |
+| 2         | this is record 2 - updated |
+| 3         | this is record 3           |
++-----------+----------------------------+
+3 rows in set (0.00 sec)
 -- the record was not updated becuase you issued a rollback command. 
 
 
@@ -113,6 +116,7 @@ SELECT * from test;
 SELECT * from test; 
 -- why are they different? 
 
+They are different because both windows had open transactions at the same time and commited at different times. Neither closed their commit before the other opened a transaction. This caused the right window to overwrite what the left window had updated because the left window commited first.
 
 -- now rollback the RIGHT window
 ROLLBACK;
@@ -123,7 +127,7 @@ SELECT * from test;
 -- in the RIGHT window
 SELECT * from test; 
 -- why are they now the same?
-
+We just rolled back the last transaction that the right window did. Now there is no interference between the two windows
 
 -- now let's try something else ... delete the existing records
 DELETE from test;
@@ -138,7 +142,7 @@ INSERT INTO test values ('6', 'this is record 6');
 
 -- update all records with a savepoint after each one 
 -- rollback to some checkpoint, I chose 3 arbitrarily
---committ to that everthing is saved and your transaction ends
+-- committ to that everthing is saved and your transaction ends
 START TRANSACTION;
 UPDATE test SET text_field = 'this is record 1 updated' WHERE key_field = '1';
 SAVEPOINT checkpoint1;
@@ -159,7 +163,7 @@ COMMIT;
 SELECT * from test;
 -- explain what you see 
 
-
+Here we have updated all of the records text_fields to include the word "updated" after "this is record #" and also specified savepoints named "checkpoint#". With the rollback to checkpoint3, all of the records up to the savepoint of checkpoint3 have been rolled back to just say "this is record #" as per the previous insertion.
 
 
 
