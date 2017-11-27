@@ -1,0 +1,50 @@
+-- Original SQL statement 
+SELECT d1.word, d2.word, d3.word
+FROM dict AS d1 JOIN dict AS d2 ON d1.word=reverse(d2.word)
+    JOIN dict AS d3 ON d1.word=right(d3.word,6)
+WHERE length(d1.word)=6 AND length(d3.word)>6;
+
+-- ran SQL  1 min  6.97 seconds
+
+-- created index on word column
+CREATE INDEX  word_index on dict(word);
+
+-- ran SQL    .50 seconds 
+
+-- decided to add two more columns to table which would enable me 
+-- to ultimately get rid of the functions
+ALTER TABLE dict ADD COLUMN word_reverse varchar(30);
+ALTER TABLE dict ADD COLUMN word_last6 varchar(30);
+
+-- updated the column to contain the data I wanted
+UPDATE dict set word_reverse = reverse(word);
+UPDATE dict set word_last6 = right(word,6); 
+
+-- then added an index on both columns 
+CREATE INDEX  word_reverse_index on dict(word_reverse);
+CREATE INDEX  word_last6_index on dict(word_last6);
+
+-- rewrote statement to remove functions ... and to resolve
+-- to smaller result sets before joining them together
+SELECT d1.word, d2.word, d3.word
+FROM (SELECT word from dict where length(word) = 6) AS d1 
+	JOIN (SELECT * from dict where length(word) = 6) AS d2 ON d1.word=d2.word_reverse
+    JOIN (SELECT * from dict where length(word) > 6) AS d3 ON d1.word=d3.word_last6;
+
++--------+--------+-------------+
+| word   | word   | word        |
++--------+--------+-------------+
+| dialer | relaid | autodialer  |
+| warder | redraw | awarder     |
+| warder | redraw | forwarder   |
+| remark | Kramer | premark     |
+| repaid | diaper | prepaid     |
+| redder | redder | shredder    |
+| spoons | snoops | tablespoons |
+| spoons | snoops | teaspoons   |
+| drawer | reward | top-drawer  |
+| reined | denier | unreined    |
+| repaid | diaper | unrepaid    |
++--------+--------+-------------+
+11 rows in set (0.07 sec)   
+ 
